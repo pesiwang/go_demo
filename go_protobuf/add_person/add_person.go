@@ -1,5 +1,5 @@
 /*
-..\..\..\installed_programs\protoc-23.2-win64\bin\protoc.exe --go_out=. .\proto\tutorialpb\addressbook.proto
+protoc --go_out=. .\proto\tutorialpb\addressbook.proto
 */
 
 package main
