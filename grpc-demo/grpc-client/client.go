@@ -11,6 +11,7 @@ import (
 	"context"
 	"fmt"
 	"grpc-client/protodemo"
+	"time"
 
 	"google.golang.org/grpc"
 )
@@ -25,10 +26,17 @@ func main() {
 		panic(c)
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
 	rsp, err := protodemo.NewDemoServiceClient(c).
-		GetData(context.Background(), &protodemo.DemoReq{
+		GetData(ctx, &protodemo.DemoReq{
 			Id: "123",
 		})
 
-	fmt.Println(rsp)
+	if err != nil {
+		fmt.Printf("grpc call error: %s", err)
+	} else {
+		fmt.Printf("grpc call succ: %s", rsp)
+	}
 }
