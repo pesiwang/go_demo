@@ -21,7 +21,7 @@ func TestAlbumsList(t *testing.T) {
 
 	router.ServeHTTP(recorder, req)
 
-	var albums []album
+	var albums []Album
 
 	json.Unmarshal(recorder.Body.Bytes(), &albums)
 	// fmt.Printf("len of albums: %v\n", len(albums))
@@ -43,7 +43,7 @@ func TestAlbumsGet(t *testing.T) {
 
 	router.ServeHTTP(recorder, req)
 
-	var a album
+	var a Album
 
 	json.Unmarshal(recorder.Body.Bytes(), &a)
 	// fmt.Printf("len of albums: %v\n", len(albums))
@@ -60,7 +60,7 @@ func TestAlbumsPost(t *testing.T) {
 	router := gin.Default()
 	router.POST("/albums", postAlbums)
 
-	var a album
+	var a Album
 	a.ID = "4"
 	a.Title = "The Modern Sound of Betty Carter"
 	a.Artist = "Betty Carter"

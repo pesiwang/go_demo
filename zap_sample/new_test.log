@@ -1,0 +1,62 @@
+2023-06-06T14:57:26.538+0800	INFO	zap_sample/main.go:32	this is info msg: wolf
+2023-06-06T14:57:26.548+0800	WARN	zap_sample/main.go:33	this is warn msg: wolf
+2023-06-06T14:57:26.548+0800	ERROR	zap_sample/main.go:34	this is error msg: wolf
+2023-06-06T14:57:26.548+0800	INFO	zap_sample/main.go:17	this is info msg: test
+2023-06-06T14:57:26.548+0800	WARN	zap_sample/main.go:18	this is warn msg: test
+2023-06-06T14:57:26.548+0800	ERROR	zap_sample/main.go:19	this is error msg: test
+2023-06-06T15:01:02.648+0800	INFO	zap_sample/main.go:32	this is info msg: wolf
+2023-06-06T15:01:02.662+0800	WARN	zap_sample/main.go:33	this is warn msg: wolf
+2023-06-06T15:01:02.662+0800	ERROR	zap_sample/main.go:34	this is error msg: wolf
+main.main
+	D:/code/go_samples/zap_sample/main.go:34
+runtime.main
+	C:/Program Files/Go/src/runtime/proc.go:250
+2023-06-06T15:01:02.663+0800	INFO	zap_sample/main.go:17	this is info msg: test
+2023-06-06T15:01:02.663+0800	WARN	zap_sample/main.go:18	this is warn msg: test
+2023-06-06T15:01:02.663+0800	ERROR	zap_sample/main.go:19	this is error msg: test
+main.test_log
+	D:/code/go_samples/zap_sample/main.go:19
+main.main
+	D:/code/go_samples/zap_sample/main.go:37
+runtime.main
+	C:/Program Files/Go/src/runtime/proc.go:250
+2023-06-06T15:01:50.386+0800	INFO	zap@v1.24.0/sugar.go:168	this is info msg: wolf
+2023-06-06T15:01:50.397+0800	WARN	zap@v1.24.0/sugar.go:173	this is warn msg: wolf
+2023-06-06T15:01:50.397+0800	ERROR	zap@v1.24.0/sugar.go:178	this is error msg: wolf
+go.uber.org/zap.(*SugaredLogger).Errorf
+	C:/Users/admin/go/pkg/mod/go.uber.org/zap@v1.24.0/sugar.go:178
+zap_sample/logger.Errorf
+	D:/code/go_samples/zap_sample/logger/logger.go:75
+main.main
+	D:/code/go_samples/zap_sample/main.go:34
+runtime.main
+	C:/Program Files/Go/src/runtime/proc.go:250
+2023-06-06T15:01:50.397+0800	INFO	zap@v1.24.0/sugar.go:168	this is info msg: test
+2023-06-06T15:01:50.397+0800	WARN	zap@v1.24.0/sugar.go:173	this is warn msg: test
+2023-06-06T15:01:50.397+0800	ERROR	zap@v1.24.0/sugar.go:178	this is error msg: test
+go.uber.org/zap.(*SugaredLogger).Errorf
+	C:/Users/admin/go/pkg/mod/go.uber.org/zap@v1.24.0/sugar.go:178
+zap_sample/logger.Errorf
+	D:/code/go_samples/zap_sample/logger/logger.go:75
+main.test_log
+	D:/code/go_samples/zap_sample/main.go:19
+main.main
+	D:/code/go_samples/zap_sample/main.go:37
+runtime.main
+	C:/Program Files/Go/src/runtime/proc.go:250
+2023-06-06T15:02:29.924+0800	INFO	zap_sample/main.go:32	this is info msg: wolf
+2023-06-06T15:02:29.935+0800	WARN	zap_sample/main.go:33	this is warn msg: wolf
+2023-06-06T15:02:29.935+0800	ERROR	zap_sample/main.go:34	this is error msg: wolf
+main.main
+	D:/code/go_samples/zap_sample/main.go:34
+runtime.main
+	C:/Program Files/Go/src/runtime/proc.go:250
+2023-06-06T15:02:29.935+0800	INFO	zap_sample/main.go:17	this is info msg: test
+2023-06-06T15:02:29.935+0800	WARN	zap_sample/main.go:18	this is warn msg: test
+2023-06-06T15:02:29.935+0800	ERROR	zap_sample/main.go:19	this is error msg: test
+main.test_log
+	D:/code/go_samples/zap_sample/main.go:19
+main.main
+	D:/code/go_samples/zap_sample/main.go:37
+runtime.main
+	C:/Program Files/Go/src/runtime/proc.go:250

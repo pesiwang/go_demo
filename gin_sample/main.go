@@ -28,7 +28,7 @@ var albums = []Album{
 
 func globalMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		fmt.Println("middleware globalMiddleware begin --------")
+		fmt.Printf("middleware globalMiddleware begin, path:%s --------\n", c.Request.URL.Path)
 		c.Next()
 		fmt.Println("middleware globalMiddleware end --------")
 	}
