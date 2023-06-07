@@ -14,25 +14,42 @@ import (
 	"proto/common"
 	"time"
 
+	gpm "github.com/grpc-ecosystem/go-grpc-middleware"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
 
-const (
-	grpcAddr = "127.0.0.1:6655"
-)
+func ClientLog(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+	md := metadata.Pairs("token", "this is token string")
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
+	fmt.Println("client log interceptor: before handler")
+	start := time.Now()
+	err := invoker(ctx, method, req, reply, cc, opts...)
+	timeCost := time.Since(start)
+	fmt.Printf("client log interceptor: after handler, time cost:%v milliseconds\n", timeCost.Milliseconds())
+
+	return err
+}
 
 func main() {
-	grpcClientConn, err := grpc.Dial(grpcAddr, grpc.WithInsecure())
+	grpcClientConn, err := grpc.Dial(
+		"127.0.0.1:6655",
+		grpc.WithInsecure(),
+		grpc.WithUnaryInterceptor(
+			gpm.ChainUnaryClient(
+				ClientLog,
+			),
+		),
+	)
 	if err != nil {
 		panic(grpcClientConn)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
+	// ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	// defer cancel()
+	ctx := context.Background()
 
-	md := metadata.Pairs("token", "this is token string")
-	ctx = metadata.NewOutgoingContext(ctx, md)
 	grpcClient := bizdemo.NewBizDemoClient(grpcClientConn)
 
 	resp, err := grpcClient.GetData(ctx, &bizdemo.DemoReq{
@@ -63,7 +80,7 @@ func main() {
 		Data: "this is data field",
 	})
 
-	if err != nil {
+	if err2 != nil {
 		fmt.Printf("grpc  call error: %s\n", err2)
 	} else {
 		fmt.Printf("grpc call succ: %s\n", resp2)

@@ -13,7 +13,7 @@ func ServerLog(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo,
 	start := time.Now()
 	resp, err = handler(ctx, req)
 	timeCost := time.Since(start)
-	fmt.Println("server log interceptor: after handler, time cost:", timeCost.Milliseconds())
+	fmt.Printf("server log interceptor: after handler, time cost %v milliseconds\n", timeCost.Milliseconds())
 
 	return
 }
