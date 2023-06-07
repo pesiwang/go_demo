@@ -3,6 +3,7 @@ syntax = "proto3";
 package bizdemo;
 option go_package = "proto/bizdemo";
 
+import "google/api/annotations.proto";
 import "google/protobuf/any.proto";
 import "common/common.proto";
 
@@ -17,6 +18,17 @@ message DemoResp{
 }
 
 service BizDemo {
-  rpc GetData(DemoReq) returns (DemoResp){}
-  rpc Test(common.TestReq) returns (common.TestResp){}
+  rpc GetData(DemoReq) returns (DemoResp){
+      option (google.api.http) = {
+      post: "/demo/get_data"
+      body: "*"
+    };
+  }
+
+  rpc Test(common.TestReq) returns (common.TestResp){
+    option (google.api.http) = {
+      post: "/demo/test"
+      body: "*"
+    };
+  }
 }
