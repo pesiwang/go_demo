@@ -12,6 +12,7 @@ message DemoReq {
 
 message DemoResp{
   string result = 1; // 返回参数值
+  google.protobuf.Any data = 2;
 }
 
 service BizDemo {

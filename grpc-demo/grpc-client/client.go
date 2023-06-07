@@ -39,7 +39,20 @@ func main() {
 	if err != nil {
 		fmt.Printf("grpc get data call error: %s\n", err)
 	} else {
-		fmt.Printf("grpc get data call succ: %s\n", resp)
+		if resp.Data.MessageIs(&common.TestResp{}) {
+			fmt.Println("resp.Data is common.TestResp type")
+		} else {
+			fmt.Printf("resp.Data is unknown type:%v\n", resp.Data)
+		}
+
+		testResp := &common.TestResp{}
+		anyErr := resp.Data.UnmarshalTo(testResp)
+		if anyErr != nil {
+			fmt.Printf("grpc get data call, resp.Data.UnmarshalTo(testResp) failed: %v, %v\n", anyErr, testResp)
+		} else {
+			fmt.Printf("grpc get data call succ, resp.Data: %v\n", testResp)
+		}
+		fmt.Printf("grpc get data call succ, resp: %s\n", resp)
 	}
 
 	resp2, err2 := grpcClient.Test(ctx, &common.TestReq{

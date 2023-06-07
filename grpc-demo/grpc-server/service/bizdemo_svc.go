@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"proto/bizdemo"
 	"proto/common"
+
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 type BizDemo struct {
@@ -17,8 +19,15 @@ func (c *BizDemo) GetData(ctx context.Context, msg *bizdemo.DemoReq) (*bizdemo.D
 	reply := fmt.Sprintf("reply_%v", params)
 	// time.Sleep(3 * time.Second)
 
+	testResp := &common.TestResp{
+		I:    7,
+		Data: "any data",
+	}
+
+	respData, _ := anypb.New(testResp)
 	return &bizdemo.DemoResp{
 		Result: reply,
+		Data:   respData,
 	}, nil
 }
 
