@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
 
 const (
@@ -30,6 +31,8 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
+	md := metadata.Pairs("token", "this is token string")
+	ctx = metadata.NewOutgoingContext(ctx, md)
 	grpcClient := bizdemo.NewBizDemoClient(grpcClientConn)
 
 	resp, err := grpcClient.GetData(ctx, &bizdemo.DemoReq{

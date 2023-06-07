@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"proto/bizdemo"
 	"proto/common"
+	"server/base/util"
+	"time"
 
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
@@ -14,9 +17,15 @@ type BizDemo struct {
 }
 
 func (c *BizDemo) GetData(ctx context.Context, msg *bizdemo.DemoReq) (*bizdemo.DemoResp, error) {
-	params := msg.Id
-	fmt.Println("recv grpc client GetData request, params", params)
-	reply := fmt.Sprintf("reply_%v", params)
+	md, ok := metadata.FromIncomingContext(ctx)
+	if ok {
+		fmt.Println("metadata[token]: ", md["token"])
+	} else {
+		fmt.Println("fetch metadata failed")
+	}
+	paramId := msg.Id
+	fmt.Println("recv grpc client GetData request, params", paramId)
+	reply := fmt.Sprintf("reply_%v", paramId)
 	// time.Sleep(3 * time.Second)
 
 	testResp := &common.TestResp{
@@ -32,15 +41,21 @@ func (c *BizDemo) GetData(ctx context.Context, msg *bizdemo.DemoReq) (*bizdemo.D
 }
 
 func (c *BizDemo) Test(ctx context.Context, msg *common.TestReq) (*common.TestResp, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if ok {
+		fmt.Println("metadata[token]: ", md["token"])
+	} else {
+		fmt.Println("fetch metadata failed")
+	}
+
+	authInfo := util.GetAuthInfo(ctx)
+	fmt.Println("auth info from ctx:", authInfo.Uid)
+
 	i := msg.I
 	data := msg.Data
 	fmt.Printf("recv grpc client request,i=%v, data=%v\n", i, data)
 	replyData := fmt.Sprintf("reply_%v", data)
-	// time.Sleep(3 * time.Second)
-
-	if i == 777 {
-		panic("test panic recover")
-	}
+	time.Sleep(3 * time.Second)
 
 	return &common.TestResp{
 		I:    i,
