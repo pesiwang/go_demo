@@ -3,7 +3,6 @@ module grpc-server
 go 1.14
 
 require (
-	github.com/golang/protobuf v1.5.3 // indirect
-	google.golang.org/grpc v1.34.0
-	google.golang.org/protobuf v1.26.0
+	google.golang.org/grpc v1.55.0
+	google.golang.org/protobuf v1.30.0
 )

@@ -10,7 +10,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"grpc-client/protodemo"
+	"proto/bizdemo"
+	"proto/common"
 	"time"
 
 	"google.golang.org/grpc"
@@ -21,22 +22,34 @@ const (
 )
 
 func main() {
-	c, err := grpc.Dial(grpcAddr, grpc.WithInsecure())
+	grpcClientConn, err := grpc.Dial(grpcAddr, grpc.WithInsecure())
 	if err != nil {
-		panic(c)
+		panic(grpcClientConn)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	rsp, err := protodemo.NewDemoServiceClient(c).
-		GetData(ctx, &protodemo.DemoReq{
-			Id: "123",
-		})
+	grpcClient := bizdemo.NewBizDemoClient(grpcClientConn)
+
+	resp, err := grpcClient.GetData(ctx, &bizdemo.DemoReq{
+		Id: "123",
+	})
 
 	if err != nil {
-		fmt.Printf("grpc call error: %s", err)
+		fmt.Printf("grpc get data call error: %s\n", err)
 	} else {
-		fmt.Printf("grpc call succ: %s", rsp)
+		fmt.Printf("grpc get data call succ: %s\n", resp)
+	}
+
+	resp2, err2 := grpcClient.Test(ctx, &common.TestReq{
+		I:    777,
+		Data: "this is data field",
+	})
+
+	if err != nil {
+		fmt.Printf("grpc  call error: %s\n", err2)
+	} else {
+		fmt.Printf("grpc call succ: %s\n", resp2)
 	}
 }

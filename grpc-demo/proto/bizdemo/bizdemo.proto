@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package bizdemo;
+option go_package = "proto/bizdemo";
+
+import "google/protobuf/any.proto";
+import "common/common.proto";
+
+message DemoReq {
+  string id = 1; // 请求参数
+}
+
+message DemoResp{
+  string result = 1; // 返回参数值
+}
+
+service BizDemo {
+  rpc GetData(DemoReq) returns (DemoResp){}
+  rpc Test(common.TestReq) returns (common.TestResp){}
+}
