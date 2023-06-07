@@ -1,4 +1,4 @@
-module grpc-client
+module client
 
 go 1.14
 

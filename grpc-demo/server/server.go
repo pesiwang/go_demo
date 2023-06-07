@@ -10,11 +10,13 @@ package main
 
 import (
 	"fmt"
-	"grpc-server/service"
 	"log"
 	"net"
 	"proto/bizdemo"
+	"server/interceptor"
+	"server/service"
 
+	gpm "github.com/grpc-ecosystem/go-grpc-middleware"
 	"google.golang.org/grpc"
 )
 
@@ -26,7 +28,15 @@ func main() {
 		log.Fatal(err)
 	}
 
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			gpm.ChainUnaryServer(
+				interceptor.Recover,
+				interceptor.Auth,
+				interceptor.ServerLog,
+			),
+		),
+	)
 
 	bizdemo.RegisterBizDemoServer(grpcServer, &service.BizDemo{})
 

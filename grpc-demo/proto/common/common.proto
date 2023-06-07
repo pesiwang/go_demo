@@ -5,10 +5,9 @@ option go_package = "proto/common";
 
 import "google/protobuf/any.proto";
 
-message IdNameItem {
-  string id = 1;
-  string name = 2; 
-
+message BaseResp {
+  int32 code = 1;
+  string msg = 2;
 }
 
 message TestReq{

@@ -38,6 +38,10 @@ func (c *BizDemo) Test(ctx context.Context, msg *common.TestReq) (*common.TestRe
 	replyData := fmt.Sprintf("reply_%v", data)
 	// time.Sleep(3 * time.Second)
 
+	if i == 777 {
+		panic("test panic recover")
+	}
+
 	return &common.TestResp{
 		I:    i,
 		Data: replyData,
