@@ -1,5 +1,5 @@
 name: "bizdemo"
-grpcServerAddr: 0.0.0.0:9000
-localGrpcServerAddr: localhost:9000
-httpServerAddr: 0.0.0.0:8080
+grpc_server_addr: 0.0.0.0:9000
+local_grpc_server_addr: localhost:9000
+http_server_addr: 0.0.0.0:8080
 logger: /dev/stdout

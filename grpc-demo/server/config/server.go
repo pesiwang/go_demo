@@ -8,11 +8,11 @@ import (
 )
 
 type ServerConfig struct {
-	Name                string
-	GrpcServerAddr      string
-	LocalGrpcServerAddr string
-	HttpServerAddr      string
-	Logger              string
+	Name                string `mapstructure:"name"`
+	GrpcServerAddr      string `mapstructure:"grpc_server_addr"`
+	LocalGrpcServerAddr string `mapstructure:"local_grpc_server_addr"`
+	HttpServerAddr      string `mapstructure:"http_server_addr"`
+	Logger              string `mapstructure:"logger"`
 }
 
 var (
@@ -21,7 +21,7 @@ var (
 )
 
 func init() {
-	flag.StringVar(&configFilename, "config", "deploy/config.yml", "config file")
+	flag.StringVar(&configFilename, "config", "./deploy/dev/config.yaml", "config file")
 }
 
 func GetServerConfig() *ServerConfig {
