@@ -25,7 +25,7 @@ func (c *BizDemo) GetData(ctx context.Context, msg *bizdemo.DemoReq) (*bizdemo.D
 	}
 	paramId := msg.Id
 	fmt.Println("recv grpc client GetData request, params", paramId)
-	reply := fmt.Sprintf("reply_%v", paramId)
+	reply := fmt.Sprintf("reply:%v", paramId)
 	// time.Sleep(3 * time.Second)
 
 	testResp := &common.TestResp{
@@ -54,7 +54,7 @@ func (c *BizDemo) Test(ctx context.Context, msg *common.TestReq) (*common.TestRe
 	i := msg.I
 	data := msg.Data
 	fmt.Printf("recv grpc client request,i=%v, data=%v\n", i, data)
-	replyData := fmt.Sprintf("reply_%v", data)
+	replyData := fmt.Sprintf("reply:%v", data)
 	time.Sleep(3 * time.Second)
 
 	return &common.TestResp{

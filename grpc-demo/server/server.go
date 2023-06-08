@@ -15,6 +15,7 @@ import (
 	"net"
 	"net/http"
 	"proto/bizdemo"
+	"server/config"
 	"server/interceptor"
 	"server/service"
 
@@ -23,16 +24,14 @@ import (
 	"google.golang.org/grpc"
 )
 
-const grpcPort = 6655
-
-func startHttpServer(grpcServer *grpc.Server) error {
+func startHttpServer(grpcServer *grpc.Server, serverConfig *config.ServerConfig) error {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	mux := runtime.NewServeMux()
 	opts := []grpc.DialOption{grpc.WithInsecure()}
-	err := bizdemo.RegisterBizDemoHandlerFromEndpoint(ctx, mux, "localhost:6655", opts)
+	err := bizdemo.RegisterBizDemoHandlerFromEndpoint(ctx, mux, serverConfig.LocalGrpcServerAddr, opts)
 	if err != nil {
 		return err
 	}
@@ -40,11 +39,13 @@ func startHttpServer(grpcServer *grpc.Server) error {
 	fmt.Println("http server is listening....")
 
 	// Start HTTP server (and proxy calls to gRPC server endpoint)
-	return http.ListenAndServe(":8081", mux)
+	return http.ListenAndServe(serverConfig.HttpServerAddr, mux)
 }
 
 func main() {
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", grpcPort))
+	config.Init()
+	serverConfig := config.GetServerConfig()
+	listener, err := net.Listen("tcp", serverConfig.GrpcServerAddr)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -59,7 +60,7 @@ func main() {
 		),
 	)
 
-	go startHttpServer(grpcServer)
+	go startHttpServer(grpcServer, serverConfig)
 
 	bizdemo.RegisterBizDemoServer(grpcServer, &service.BizDemo{})
 

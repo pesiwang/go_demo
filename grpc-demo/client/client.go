@@ -33,8 +33,9 @@ func ClientLog(ctx context.Context, method string, req, reply interface{}, cc *g
 }
 
 func main() {
+
 	grpcClientConn, err := grpc.Dial(
-		"127.0.0.1:6655",
+		"127.0.0.1:9000",
 		grpc.WithInsecure(),
 		grpc.WithUnaryInterceptor(
 			gpm.ChainUnaryClient(
