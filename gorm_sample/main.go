@@ -56,6 +56,7 @@ func main() {
 	fmt.Println("Mysql连接成功")
 	var result *gorm.DB
 
+	// ------------- create -------------
 	// user := User{
 	// 	Name:        "Jinzhu",
 	// 	Age:         18,
@@ -85,6 +86,7 @@ func main() {
 	// result = db.Create(&user) // 通过数据的指针来创建
 	// return
 
+	// ------------- find -------------
 	firstUser := &User{}
 	result = db.First(firstUser, "user_id = ?", "10002")
 	if result.Error != nil {
@@ -98,10 +100,12 @@ func main() {
 	// db.Model(&User{}).First(&firstUser2, "user_id = ?", "10003")
 	// fmt.Printf("firstUser2: %+v\n", firstUser2)
 
-	firstUser3 := &User{UserId: 10005}
-	db.Model(&User{}).First(&firstUser3)
-	fmt.Printf("firstUser3: %+v\n", firstUser3)
+	// not recommend
+	// firstUser3 := &User{UserId: 10005}
+	// db.Model(&User{}).First(&firstUser3)
+	// fmt.Printf("firstUser3: %+v\n", firstUser3)
 
+	// select limit 1
 	firstUser4 := &User{}
 	db.Where("user_id = ?", 10006).First(&firstUser4)
 	fmt.Printf("firstUser4: %+v\n", firstUser4)
@@ -110,6 +114,7 @@ func main() {
 	result = db.Select("user_id,user_name").Where("user_id = ? and user_name = ?", 10004, "Jinzhu").First(&firstUser5)
 	fmt.Printf("firstUser5: %+v, result:%+v\n", firstUser5, result)
 
+	// multiply select
 	users := make([]User, 0)
 	db.Select("user_id,user_name").Find(&users)
 	fmt.Printf("users: %+v\n", users)
@@ -123,6 +128,7 @@ func main() {
 		Total int
 	}
 
+	// group by
 	cr := &CountResult{}
 	db.Model(&User{}).Select("user_name as name, count(*) as total").Where("user_name = ?", "Jinzhu").Group("user_name").Find(&cr)
 	fmt.Printf("count result: %+v\n", cr)
@@ -134,18 +140,20 @@ func main() {
 	db.Model(&User{}).Select("count(*) as total").Where("user_name = ?", "Jinzhu").Group("user_name").Find(&cr2)
 	fmt.Printf("count result: %+v\n", cr2)
 
-	// 以下待验证
+	// -------------- update -------------------
 	result = db.Model(&User{}).Where("user_id = ?", 10001).Update("user_name", "wolf")
 	fmt.Printf("update result: %+v\n", result)
 
 	result = db.Model(&User{}).Where("user_id = ?", 10002).Updates(map[string]interface{}{"user_name": "xiaoming", "age": 20})
 	fmt.Printf("updates result: %+v\n", result)
 
+	// -------------- delete --------------------
 	result = db.Where("user_id = ?", 10006).Delete(&User{})
 	fmt.Printf("delete result: %+v\n", result)
 
-	result = db.Delete(&User{UserId: 10005})
-	fmt.Printf("delete result: %+v\n", result)
+	// not recommend
+	// result = db.Delete(&User{UserId: 10005})
+	// fmt.Printf("delete result: %+v\n", result)
 
 	result = db.Where("user_id = ? and user_name = ?", 10003, "aaaa").Delete(&User{})
 	fmt.Printf("delete result2: %+v\n", result)
