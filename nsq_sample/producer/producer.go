@@ -35,7 +35,7 @@ func startProducer() {
 	}
 	// 发布消息
 	for {
-		if err := producer.Publish("test1", []byte("test message")); err != nil {
+		if err := producer.Publish("test2", []byte("test message")); err != nil {
 			fmt.Println("publish error: " + err.Error())
 		}
 		fmt.Println("send test")

@@ -21,15 +21,19 @@ func startConsumer() {
 	cfg := nsq.NewConfig()
 	cfg.MaxInFlight = 40
 	cfg.LookupdPollInterval = time.Second * 10
-	consumer, err := nsq.NewConsumer("test1", "sensor01", cfg)
+	consumer, err := nsq.NewConsumer("test2", "sensor01", cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
 	// 设置消息处理函数
-	consumer.AddHandler(nsq.HandlerFunc(func(message *nsq.Message) error {
+	// consumer.AddHandler(nsq.HandlerFunc(func(message *nsq.Message) error {
+	// 	log.Println(string(message.Body))
+	// 	return nil
+	// }))
+	consumer.AddConcurrentHandlers(nsq.HandlerFunc(func(message *nsq.Message) error {
 		log.Println(string(message.Body))
 		return nil
-	}))
+	}), 10)
 	// nsqlookupd
 	//[]string
 	if err := consumer.ConnectToNSQLookupds([]string{lookupAddr}); err != nil {
