@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"time"
 	"util"
 
@@ -13,7 +12,7 @@ import (
 var lookupAddr string
 
 func init() {
-	flag.StringVar(&lookupAddr, "lookupAddr", "101.132.227.177:4161", "nsqlookupd addr")
+	flag.StringVar(&lookupAddr, "lookupAddr", "127.0.0.1:4161", "nsqlookupd addr")
 
 	flag.Parse()
 }
@@ -32,13 +31,14 @@ func startProducer() {
 	cfg := nsq.NewConfig()
 	producer, err := nsq.NewProducer(nodeIps[0], cfg)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
 	}
 	// 发布消息
 	for {
-		if err := producer.Publish("test", []byte("test message")); err != nil {
-			log.Fatal("publish error: " + err.Error())
+		if err := producer.Publish("test1", []byte("test message")); err != nil {
+			fmt.Println("publish error: " + err.Error())
 		}
+		fmt.Println("send test")
 		time.Sleep(1 * time.Second)
 	}
 }

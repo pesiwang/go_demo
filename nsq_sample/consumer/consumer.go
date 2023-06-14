@@ -11,7 +11,7 @@ import (
 var lookupAddr string
 
 func init() {
-	flag.StringVar(&lookupAddr, "lookupAddr", "101.132.227.177:4161", "nsqlookupd addr")
+	flag.StringVar(&lookupAddr, "lookupAddr", "127.0.0.1:4161", "nsqlookupd addr")
 
 	flag.Parse()
 }
@@ -20,8 +20,8 @@ func init() {
 func startConsumer() {
 	cfg := nsq.NewConfig()
 	cfg.MaxInFlight = 40
-	cfg.LookupdPollInterval = time.Second * 60
-	consumer, err := nsq.NewConsumer("test", "sensor01", cfg)
+	cfg.LookupdPollInterval = time.Second * 10
+	consumer, err := nsq.NewConsumer("test1", "sensor01", cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
