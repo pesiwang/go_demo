@@ -33,7 +33,12 @@ func VerifyToken(tokenString string) bool {
 	})
 
 	if err != nil {
-		fmt.Printf("verify token failed: %s\n", err)
+		if ve, ok := err.(*jwt.ValidationError); ok {
+			if ve.Is(jwt.ErrTokenExpired) {
+				fmt.Printf("token expired: %s\n", err)
+			}
+		}
+		fmt.Printf("verify token failed1: %s\n", err)
 		return false
 	}
 
@@ -43,7 +48,7 @@ func VerifyToken(tokenString string) bool {
 		return true
 	}
 
-	fmt.Printf("verify token failed: %s\n", err)
+	fmt.Printf("verify token failed2: %s\n", err)
 	return false
 }
 
