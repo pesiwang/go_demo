@@ -13,6 +13,7 @@ import (
 )
 
 type metrics struct {
+	onlineNum    *prometheus.GaugeVec
 	cpuTemp      prometheus.Gauge
 	requestTotal prometheus.Counter
 	hdFailures   *prometheus.CounterVec
@@ -23,6 +24,14 @@ type metrics struct {
 
 func NewMetrics(reg prometheus.Registerer) *metrics {
 	m := &metrics{
+		onlineNum: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "online_num",
+				Help: "online num of users",
+			},
+			[]string{"sex"},
+		),
+
 		cpuTemp: prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: "cpu_temperature_celsius",
 			Help: "Current temperature of the CPU.",
@@ -86,8 +95,10 @@ func SimulateStat(reg prometheus.Registerer) {
 			// counter update
 			if rand.Intn(10)%2 == 0 {
 				m.requestTotal.Inc()
+				m.onlineNum.WithLabelValues("1").Set(float64(rand.Int31n(100)))
 			} else {
 				m.requestTotal.Add(7)
+				m.onlineNum.WithLabelValues("2").Set(float64(rand.Int31n(100)))
 			}
 
 			// counterVec update

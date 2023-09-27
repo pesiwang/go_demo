@@ -2,8 +2,7 @@ package main
 
 import (
 	"fmt"
-	"runtime"
-	"time"
+	"learngo/app"
 )
 
 func test(p *int) {
@@ -11,26 +10,11 @@ func test(p *int) {
 }
 
 func main() {
-	go func() {
-		for i := 0; i < 10; i++ {
-			fmt.Println(i)
-			if i == 5 {
-				fmt.Println("exit")
-				runtime.Goexit()
-				// return
-			}
-		}
-	}()
+	// var a *app.userApp // error
 
-	i := 2
-	p := &i
-	pp := &p
+	a := app.NewUserApp()
 
-	fmt.Printf("i:%v, p:%v, pp:%v\n", i, p, pp)
-	test(&i)
+	a.Print()
 
-	for {
-		time.Sleep(time.Second)
-		fmt.Println("main goroutine")
-	}
+	//a.pri() // error
 }

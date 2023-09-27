@@ -22,6 +22,7 @@ import (
 	gpm "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
+	//_ "net/http/pprof"
 )
 
 func startHttpServer(grpcServer *grpc.Server, serverConfig *config.ServerConfig) error {
