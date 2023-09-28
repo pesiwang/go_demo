@@ -29,6 +29,13 @@ import (
 	"google.golang.org/grpc"
 )
 
+// pprof 分析命令
+// 获取分析文件
+// go tool pprof http://127.0.0.1:6061/debug/pprof/profile?seconds=60
+
+// 进行分析：
+// go tool pprof -http=:8080 ./pprof.server.exe.samples.cpu.003.pb.gz
+
 func startHttpServer(grpcServer *grpc.Server, serverConfig *config.ServerConfig) error {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
