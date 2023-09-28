@@ -86,4 +86,14 @@ func main() {
 	} else {
 		fmt.Printf("grpc call succ: %s\n", resp2)
 	}
+
+	benchmartTest(grpcClient)
+}
+
+func benchmartTest(client bizdemo.BizDemoClient) {
+	for i := 0; i < 1000; i++ {
+		client.GetData(context.Background(), &bizdemo.DemoReq{
+			Id: fmt.Sprintf("%v", i),
+		})
+	}
 }

@@ -12,17 +12,21 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
 	"net/http"
 	"proto/bizdemo"
 	"server/config"
 	"server/interceptor"
 	"server/service"
+	"time"
+
+	_ "net/http/pprof"
 
 	gpm "github.com/grpc-ecosystem/go-grpc-middleware"
+
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
-	//_ "net/http/pprof"
 )
 
 func startHttpServer(grpcServer *grpc.Server, serverConfig *config.ServerConfig) error {
@@ -37,10 +41,40 @@ func startHttpServer(grpcServer *grpc.Server, serverConfig *config.ServerConfig)
 		return err
 	}
 
-	fmt.Println("http server is listening....")
-
 	// Start HTTP server (and proxy calls to gRPC server endpoint)
 	return http.ListenAndServe(serverConfig.HttpServerAddr, mux)
+}
+
+var datas []string
+
+func Add(str string) int {
+	data := []byte(str)
+	datas = append(datas, string(data))
+	return len(datas)
+}
+
+func startPprof() {
+	go func() {
+		for {
+			log.Printf("len: %d\n", Add("go-programming-tour-book"))
+			time.Sleep(time.Second * 3)
+		}
+	}()
+
+	go func() {
+		for {
+			j := 0
+			for i := 0; i <= 1000000; i++ {
+				j = i*j + i + rand.Int()
+
+			}
+			Add("ddddd")
+			fmt.Printf("j: %v\n", j)
+			time.Sleep(time.Second * 3)
+		}
+	}()
+
+	_ = http.ListenAndServe("0.0.0.0:6061", nil)
 }
 
 func main() {
@@ -62,6 +96,7 @@ func main() {
 	)
 
 	go startHttpServer(grpcServer, serverConfig)
+	go startPprof()
 
 	bizdemo.RegisterBizDemoServer(grpcServer, &service.BizDemo{})
 
