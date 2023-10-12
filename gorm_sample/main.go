@@ -22,8 +22,19 @@ type User struct {
 	Remark      string `json:"remark" xorm:"remark" gorm:"column:remark"`
 }
 
+// create table sql
+// CREATE TABLE `test_user` (
+// 	`user_id` bigint unsigned NOT NULL AUTO_INCREMENT,
+// 	`user_name` varchar(100) NOT NULL DEFAULT '',
+// 	`age` int NOT NULL DEFAULT '0',
+// 	`country_code` varchar(200) NOT NULL DEFAULT '',
+// 	`number` varchar(200) NOT NULL DEFAULT '',
+// 	`remark` varchar(200) NOT NULL DEFAULT '',
+// 	PRIMARY KEY (`user_id`)
+//   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC
+
 func (u User) TableName() string {
-	return "user"
+	return "test_user"
 }
 
 func main() {
@@ -32,7 +43,8 @@ func main() {
 
 	dialector := mysql.New(mysql.Config{
 		// DSN:                       "root:123456@tcp(10.10.21.65:3307)/test?charset=utf8mb4&parseTime=True&loc=Local",
-		DSN:                       "root:gH5wRmTxAmAn@tcp(101.132.227.177:12345)/testdb",
+		//DSN:                       "root:gH5wRmTxAmAn@tcp(101.132.227.177:12345)/testdb",
+		DSN:                       "root:4B0BlT0n5Ini@tcp(rm-uf635virzqqr2329u6o.mysql.rds.aliyuncs.com:3306)/test_db",
 		DefaultStringSize:         191,   // string 类型字段的默认长度
 		DisableDatetimePrecision:  true,  // 禁用 datetime 精度，MySQL 5.6 之前的数据库不支持
 		DontSupportRenameIndex:    true,  // 重命名索引时采用删除并新建的方式，MySQL 5.7 之前的数据库和 MariaDB 不支持重命名索引
