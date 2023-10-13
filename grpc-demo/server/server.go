@@ -27,6 +27,7 @@ import (
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 // pprof 分析命令
@@ -101,6 +102,8 @@ func main() {
 			),
 		),
 	)
+
+	reflection.Register(grpcServer)
 
 	go startHttpServer(grpcServer, serverConfig)
 	go startPprof()
