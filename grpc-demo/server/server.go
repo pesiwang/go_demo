@@ -103,13 +103,11 @@ func main() {
 		),
 	)
 
-	reflection.Register(grpcServer)
-
 	go startHttpServer(grpcServer, serverConfig)
 	go startPprof()
 
 	bizdemo.RegisterBizDemoServer(grpcServer, &service.BizDemo{})
-
+	reflection.Register(grpcServer)
 	fmt.Println("sever is listening....")
 
 	if err = grpcServer.Serve(listener); err != nil {
