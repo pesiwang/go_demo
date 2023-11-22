@@ -31,4 +31,10 @@ service BizDemo {
       body: "*"
     };
   }
+
+  rpc HealthCheck(common.TestReq) returns (common.TestResp){
+    option (google.api.http) = {
+      get: "/demo/health_check"
+    };
+  }
 }

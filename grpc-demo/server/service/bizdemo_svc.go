@@ -62,3 +62,19 @@ func (c *BizDemo) Test(ctx context.Context, msg *common.TestReq) (*common.TestRe
 		Data: replyData,
 	}, nil
 }
+
+func (c *BizDemo) HealthCheck(ctx context.Context, msg *common.TestReq) (*common.TestResp, error) {
+	fmt.Println("HealthCheck begin...")
+
+	return nil, fmt.Errorf("internal error")
+
+	i := msg.I
+	data := msg.Data
+	fmt.Printf("HealthCheck recv grpc client request,i=%v, data=%v\n", i, data)
+	replyData := fmt.Sprintf("HealthCheck reply:%v", data)
+
+	return &common.TestResp{
+		I:    i,
+		Data: replyData,
+	}, nil
+}

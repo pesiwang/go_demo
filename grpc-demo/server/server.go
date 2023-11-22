@@ -64,7 +64,7 @@ func Add(str string) int {
 func startPprof() {
 	go func() {
 		for {
-			log.Printf("len: %d\n", Add("go-programming-tour-book"))
+			// log.Printf("len: %d\n", Add("go-programming-tour-book"))
 			time.Sleep(time.Second * 3)
 		}
 	}()
@@ -77,7 +77,7 @@ func startPprof() {
 
 			}
 			Add("ddddd")
-			fmt.Printf("j: %v\n", j)
+			// fmt.Printf("j: %v\n", j)
 			time.Sleep(time.Second * 3)
 		}
 	}()

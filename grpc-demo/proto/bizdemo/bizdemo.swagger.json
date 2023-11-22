@@ -43,6 +43,43 @@
         ]
       }
     },
+    "/demo/health_check": {
+      "get": {
+        "operationId": "BizDemo_HealthCheck",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/commonTestResp"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "i",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "data",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "BizDemo"
+        ]
+      }
+    },
     "/demo/test": {
       "post": {
         "operationId": "BizDemo_Test",

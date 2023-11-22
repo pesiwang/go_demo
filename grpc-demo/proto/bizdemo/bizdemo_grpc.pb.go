@@ -20,8 +20,9 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	BizDemo_GetData_FullMethodName = "/bizdemo.BizDemo/GetData"
-	BizDemo_Test_FullMethodName    = "/bizdemo.BizDemo/Test"
+	BizDemo_GetData_FullMethodName     = "/bizdemo.BizDemo/GetData"
+	BizDemo_Test_FullMethodName        = "/bizdemo.BizDemo/Test"
+	BizDemo_HealthCheck_FullMethodName = "/bizdemo.BizDemo/HealthCheck"
 )
 
 // BizDemoClient is the client API for BizDemo service.
@@ -30,6 +31,7 @@ const (
 type BizDemoClient interface {
 	GetData(ctx context.Context, in *DemoReq, opts ...grpc.CallOption) (*DemoResp, error)
 	Test(ctx context.Context, in *common.TestReq, opts ...grpc.CallOption) (*common.TestResp, error)
+	HealthCheck(ctx context.Context, in *common.TestReq, opts ...grpc.CallOption) (*common.TestResp, error)
 }
 
 type bizDemoClient struct {
@@ -58,12 +60,22 @@ func (c *bizDemoClient) Test(ctx context.Context, in *common.TestReq, opts ...gr
 	return out, nil
 }
 
+func (c *bizDemoClient) HealthCheck(ctx context.Context, in *common.TestReq, opts ...grpc.CallOption) (*common.TestResp, error) {
+	out := new(common.TestResp)
+	err := c.cc.Invoke(ctx, BizDemo_HealthCheck_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // BizDemoServer is the server API for BizDemo service.
 // All implementations should embed UnimplementedBizDemoServer
 // for forward compatibility
 type BizDemoServer interface {
 	GetData(context.Context, *DemoReq) (*DemoResp, error)
 	Test(context.Context, *common.TestReq) (*common.TestResp, error)
+	HealthCheck(context.Context, *common.TestReq) (*common.TestResp, error)
 }
 
 // UnimplementedBizDemoServer should be embedded to have forward compatible implementations.
@@ -75,6 +87,9 @@ func (UnimplementedBizDemoServer) GetData(context.Context, *DemoReq) (*DemoResp,
 }
 func (UnimplementedBizDemoServer) Test(context.Context, *common.TestReq) (*common.TestResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Test not implemented")
+}
+func (UnimplementedBizDemoServer) HealthCheck(context.Context, *common.TestReq) (*common.TestResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method HealthCheck not implemented")
 }
 
 // UnsafeBizDemoServer may be embedded to opt out of forward compatibility for this service.
@@ -124,6 +139,24 @@ func _BizDemo_Test_Handler(srv interface{}, ctx context.Context, dec func(interf
 	return interceptor(ctx, in, info, handler)
 }
 
+func _BizDemo_HealthCheck_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(common.TestReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BizDemoServer).HealthCheck(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BizDemo_HealthCheck_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BizDemoServer).HealthCheck(ctx, req.(*common.TestReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // BizDemo_ServiceDesc is the grpc.ServiceDesc for BizDemo service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -138,6 +171,10 @@ var BizDemo_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Test",
 			Handler:    _BizDemo_Test_Handler,
+		},
+		{
+			MethodName: "HealthCheck",
+			Handler:    _BizDemo_HealthCheck_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
