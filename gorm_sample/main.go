@@ -142,14 +142,14 @@ func main() {
 
 	// group by
 	cr := &CountResult{}
-	db.Model(&User{}).Select("user_name as name, count(*) as total").Where("user_name = ?", "Jinzhu").Group("user_name").Find(&cr)
+	db.Model(&User{}).Select("user_name as name, count(0) as total").Where("user_name = ?", "Jinzhu").Group("user_name").Find(&cr)
 	fmt.Printf("count result: %+v\n", cr)
 
 	type CountResult2 struct {
 		Total int
 	}
 	cr2 := &CountResult2{Total: 0}
-	db.Model(&User{}).Select("count(*) as total").Where("user_name = ?", "Jinzhu").Group("user_name").Find(&cr2)
+	db.Model(&User{}).Select("count(0) as total").Where("user_name = ?", "Jinzhu").Group("user_name").Find(&cr2)
 	fmt.Printf("count result: %+v\n", cr2)
 
 	// -------------- update -------------------
