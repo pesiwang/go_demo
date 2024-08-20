@@ -126,8 +126,8 @@ func main() {
 	// fmt.Printf("sql1:%v\n sql2:%v\n union sql:%v\n", sql1, sql2, unionSql)
 
 	db.Raw(`(?) union (?) order by ct desc limit ?`,
-		db.Table(FakeMsg{}.TableName()).Where("ct >= ? and (to_userid = ? and to_accost_duration > 0)", st, mid),
-		db.Table(FakeMsg{}.TableName()).Where("ct >= ? and (from_userid = ? and from_accost_duration > 0)", st, mid),
+		db.Table(FakeMsg{}.TableName()).Where("ct >= ? and (to_userid = ? and to_accost_duration > 0)", st, mid).Select("*"),
+		db.Table(FakeMsg{}.TableName()).Where("ct >= ? and (from_userid = ? and from_accost_duration > 0)", st, mid).Select("*"),
 		6,
 	).Scan(&list2)
 	fmt.Printf("find 2 succ, result: %v\n len:%v\n", list2, len(list2))
