@@ -113,22 +113,23 @@ func main() {
 
 	var list2 []FakeMsg
 
-	sql1 := db.ToSQL(func(tx *gorm.DB) *gorm.DB {
-		return tx.Table(FakeMsg{}.TableName()).Where("ct >= ? and (to_userid = ? and to_accost_duration > 0)", st, mid).Find(&list2)
-	})
+	// sql1 := db.ToSQL(func(tx *gorm.DB) *gorm.DB {
+	// 	return tx.Table(FakeMsg{}.TableName()).Where("ct >= ? and (to_userid = ? and to_accost_duration > 0)", st, mid).Find(&list2)
+	// })
 
-	sql2 := db.ToSQL(func(tx *gorm.DB) *gorm.DB {
-		return tx.Table(FakeMsg{}.TableName()).Where("ct >= ? and (from_userid = ? and from_accost_duration > 0)", st, mid).Find(&list2)
-	})
+	// sql2 := db.ToSQL(func(tx *gorm.DB) *gorm.DB {
+	// 	return tx.Table(FakeMsg{}.TableName()).Where("ct >= ? and (from_userid = ? and from_accost_duration > 0)", st, mid).Find(&list2)
+	// })
 
-	unionSql := "(" + sql1 + ") union (" + sql2 + ") order by ct desc limit 10"
+	// unionSql := "(" + sql1 + ") union (" + sql2 + ") order by ct desc limit 10"
 
-	fmt.Printf("sql1:%v\n sql2:%v\n union sql:%v\n", sql1, sql2, unionSql)
+	// fmt.Printf("sql1:%v\n sql2:%v\n union sql:%v\n", sql1, sql2, unionSql)
 
 	var tmpList []FakeMsg
-	db.Raw(`(?) union (?) order by ct desc limit 10`,
+	db.Raw(`(?) union (?) order by ct desc limit ?`,
 		db.Table(FakeMsg{}.TableName()).Where("ct >= ? and (to_userid = ? and to_accost_duration > 0)", st, mid).Find(&tmpList),
 		db.Table(FakeMsg{}.TableName()).Where("ct >= ? and (from_userid = ? and from_accost_duration > 0)", st, mid).Find(&tmpList),
+		10,
 	).Scan(&list2)
 	fmt.Printf("find 2 succ, result: %v\n len:%v", list2, len(list2))
 
