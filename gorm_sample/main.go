@@ -8,6 +8,7 @@ import (
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
 )
 
@@ -45,6 +46,49 @@ func (FakeMsg) TableName() string {
 	return "fake_msg"
 }
 
+type OpMonthScore struct {
+	Mid           int64 `json:"mid"`
+	Month         int32 `json:"month"` // 月份, 如201901， 使用整数加速索引
+	Country       int32 `json:"country"`
+	StartScore    int64 `json:"start_score"`    // 月初积分
+	EndScore      int64 `json:"end_score"`      // 月末结余积分
+	GainedScore   int64 `json:"gained_score"`   // 本月总获得积分，统一传正整数
+	WithdrewScore int64 `json:"withdrew_score"` // 本月总提现积分，统一传正整数
+	ClearedScore  int64 `json:"cleared_score"`  // 本月总清空积分，统一传正整数
+	Ut            int64 `json:"ut"`
+	Ct            int64 `json:"ct"`
+}
+
+func (p *OpMonthScore) TableName() string {
+	return "op_month_score"
+}
+func (p OpMonthScore) SaveMonthScore(record OpMonthScore) (err error) {
+	currentTs := time.Now().Unix()
+	record.Ut = currentTs
+	record.Ct = currentTs
+
+	tx := gormDb.Clauses(clause.OnConflict{
+		Columns: []clause.Column{{Name: "mid"}, {Name: "month"}},
+		DoUpdates: clause.Assignments(map[string]interface{}{
+			"gained_score":   gorm.Expr("gained_score + ?", record.GainedScore),
+			"withdrew_score": gorm.Expr("withdrew_score + ?", record.WithdrewScore),
+			"cleared_score":  gorm.Expr("cleared_score + ?", record.ClearedScore),
+			"ut":             time.Now().Unix(),
+		}),
+	}).Create(&record)
+
+	// 判断操作类型
+	if tx.Error != nil {
+		fmt.Println("Error occurred:", tx.Error)
+	} else if tx.RowsAffected == 1 {
+		fmt.Println("Insert operation")
+	} else if tx.RowsAffected > 1 {
+		fmt.Println("Update operation")
+	}
+
+	return
+}
+
 // create table sql
 // CREATE TABLE `test_user` (
 // 	`user_id` bigint unsigned NOT NULL AUTO_INCREMENT,
@@ -59,6 +103,8 @@ func (FakeMsg) TableName() string {
 func (u User) TableName() string {
 	return "test_user"
 }
+
+var gormDb *gorm.DB
 
 func main() {
 	// 参考 https://github.com/go-sql-driver/mysql#dsn-data-source-name 获取详情
@@ -91,6 +137,8 @@ func main() {
 		return
 	}
 
+	gormDb = db
+
 	sqlDB, _ := db.DB()
 	sqlDB.SetMaxIdleConns(20)
 	sqlDB.SetMaxOpenConns(20)
@@ -99,19 +147,34 @@ func main() {
 	mysqlDBs["test"] = db
 
 	fmt.Println("Mysql连接成功")
-	// mid := 117013582
-	mid := 117013747
-	st := 10000123
-	var list []FakeMsg
-	err = db.Where("ct >= ? and ( (to_userid = ? and to_accost_duration > 0 ) or (from_userid = ? and from_accost_duration > 0 ) )", st, mid, mid).
-		Order("ct desc").Limit(int(10)).Find(&list).Error
-	if err != nil {
-		fmt.Printf("find 1 err %v\n", err)
-		return
-	}
-	fmt.Printf("find 1 succ, result: %v\n len:%v", list, len(list))
 
-	var list2 []FakeMsg
+	ms := OpMonthScore{
+		Mid:           11111,
+		Month:         202501,
+		Country:       86,
+		StartScore:    100,
+		EndScore:      0,
+		GainedScore:   8,
+		WithdrewScore: 0,
+		ClearedScore:  0,
+		Ut:            0,
+		Ct:            0,
+	}
+
+	ms.SaveMonthScore(ms)
+	// mid := 117013582
+	// mid := 117013747
+	// st := 10000123
+	// var list []FakeMsg
+	// err = db.Where("ct >= ? and ( (to_userid = ? and to_accost_duration > 0 ) or (from_userid = ? and from_accost_duration > 0 ) )", st, mid, mid).
+	// 	Order("ct desc").Limit(int(10)).Find(&list).Error
+	// if err != nil {
+	// 	fmt.Printf("find 1 err %v\n", err)
+	// 	return
+	// }
+	// fmt.Printf("find 1 succ, result: %v\n len:%v", list, len(list))
+
+	// var list2 []FakeMsg
 
 	// sql1 := db.ToSQL(func(tx *gorm.DB) *gorm.DB {
 	// 	return tx.Table(FakeMsg{}.TableName()).Where("ct >= ? and (to_userid = ? and to_accost_duration > 0)", st, mid).Find(&list2)
@@ -125,12 +188,12 @@ func main() {
 
 	// fmt.Printf("sql1:%v\n sql2:%v\n union sql:%v\n", sql1, sql2, unionSql)
 
-	db.Raw(`(?) union (?) order by ct desc limit ?`,
-		db.Table(FakeMsg{}.TableName()).Where("ct >= ? and (to_userid = ? and to_accost_duration > 0)", st, mid).Select("*"),
-		db.Table(FakeMsg{}.TableName()).Where("ct >= ? and (from_userid = ? and from_accost_duration > 0)", st, mid).Select("*"),
-		6,
-	).Scan(&list2)
-	fmt.Printf("find 2 succ, result: %v\n len:%v\n", list2, len(list2))
+	// db.Raw(`(?) union (?) order by ct desc limit ?`,
+	// 	db.Table(FakeMsg{}.TableName()).Where("ct >= ? and (to_userid = ? and to_accost_duration > 0)", st, mid).Select("*"),
+	// 	db.Table(FakeMsg{}.TableName()).Where("ct >= ? and (from_userid = ? and from_accost_duration > 0)", st, mid).Select("*"),
+	// 	6,
+	// ).Scan(&list2)
+	// fmt.Printf("find 2 succ, result: %v\n len:%v\n", list2, len(list2))
 
 	// ------------- create -------------
 	// user := User{
