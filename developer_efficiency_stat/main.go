@@ -328,6 +328,9 @@ func parseOneSheet(file *excelize.File, sheet, statMonth string) ([]demandRecord
 
 	out := make([]demandRecord, 0, len(demandMap))
 	for _, v := range demandMap {
+		if statMonth != "" && monthKey(v.MaxEnd) != statMonth {
+			continue
+		}
 		out = append(out, demandRecord{
 			Title:       v.Title,
 			Start:       v.MinStart,
