@@ -1,5 +1,5 @@
 /*
-.\developer_efficiency_stat.exe -input .\Higo版本研发详细计划-2026.xlsx -start 2026-04 -end 2026-05 -debug
+.\developer_efficiency_stat.exe -input .\Higo版本研发详细计划-2026.xlsx -start 202604 -end 202605
 
 // Windows 编译命令:
 //
@@ -7,18 +7,13 @@
 //
 // Windows 运行方式:
 //
-//	.\developer_efficiency_stat.exe -input "D:\data\需求统计.xlsx" -start "2026-04" -end "2026-06" -output "D:\data\result.csv"
-//
-// 开启调试输出(输出每个需求明细并按交付时长升序):
-//
-//	.\developer_efficiency_stat.exe -input "D:\data\需求统计.xlsx" -start "2026-04" -end "2026-04" -output "D:\data\result.csv" -debug -debug-output "D:\data\debug.csv"
+//	.\developer_efficiency_stat.exe -input "D:\data\需求统计.xlsx" -start "202604" -end "202606" -output "D:\data\result.xlsx"
 
 */
 
 package main
 
 import (
-	"encoding/csv"
 	"errors"
 	"fmt"
 	"math"
@@ -38,13 +33,15 @@ const (
 	timeLayoutYMDHMS     = "2006-01-02 15:04:05"
 	timeLayoutYMDHM      = "2006-01-02 15:04"
 	timeLayoutYMD        = "2006-01-02"
-	timeLayoutYM         = "2006-01"
+	timeLayoutYM         = "200601"
 )
 
 var releaseSheetRegexp = regexp.MustCompile(`^\d+\.\d+\.\d+_\d+\.\d+$`)
 
 type demandRecord struct {
 	Title       string
+	Spec        string
+	Link        string
 	Start       time.Time
 	End         time.Time
 	SourceSheet string
@@ -54,11 +51,16 @@ type demandRecord struct {
 type monthStat struct {
 	Month          string
 	DeliveryCount  int
+	SmallCount     int
+	MediumCount    int
+	LargeCount     int
 	DeliveryP80Day float64
 }
 
 type demandAgg struct {
 	Title    string
+	Spec     string
+	Link     string
 	MinStart time.Time
 	MaxEnd   time.Time
 }
@@ -67,6 +69,8 @@ type debugItem struct {
 	Month       string
 	SourceSheet string
 	Title       string
+	Spec        string
+	Link        string
 	Start       time.Time
 	End         time.Time
 	Days        float64
@@ -78,7 +82,7 @@ type targetSheet struct {
 }
 
 func main() {
-	inputPath, startMonth, endMonth, outputPath, debugMode, debugOutputPath, err := parseArgs(os.Args[1:])
+	inputPath, startMonth, endMonth, outputPath, err := parseArgs(os.Args[1:])
 	if err != nil {
 		exitWithErr(err)
 	}
@@ -88,28 +92,23 @@ func main() {
 		exitWithErr(err)
 	}
 
-	records, err := readDemandRecords(inputPath, start, end, debugMode)
+	records, err := readDemandRecords(inputPath, start, end)
 	if err != nil {
 		exitWithErr(err)
 	}
+	records = deduplicateByTitle(records)
 
 	stats := calcStatsByMonth(records, start, end)
+	debugItems := buildDebugItems(records, start, end)
 
-	if err = writeCSV(outputPath, stats); err != nil {
+	if err = writeXLSX(outputPath, stats, debugItems); err != nil {
 		exitWithErr(err)
-	}
-
-	if debugMode {
-		debugItems := buildDebugItems(records, start, end)
-		if err = writeDebugCSV(debugOutputPath, debugItems); err != nil {
-			exitWithErr(err)
-		}
 	}
 }
 
-func parseArgs(args []string) (inputPath, startMonth, endMonth, outputPath string, debugMode bool, debugOutputPath string, err error) {
+func parseArgs(args []string) (inputPath, startMonth, endMonth, outputPath string, err error) {
 	if len(args) == 0 {
-		return "", "", "", "", false, "", errors.New("参数不能为空，示例: -input <xlsx文件> -start <YYYY-MM> -end <YYYY-MM> [-output <csv文件>] [-debug] [-debug-output <csv文件>]")
+		return "", "", "", "", errors.New("参数不能为空，示例: -input <xlsx文件> -start <YYYYMM> -end <YYYYMM> [-output <xlsx文件>]")
 	}
 
 	for i := 0; i < len(args); i++ {
@@ -117,52 +116,41 @@ func parseArgs(args []string) (inputPath, startMonth, endMonth, outputPath strin
 		case "-input":
 			i++
 			if i >= len(args) {
-				return "", "", "", "", false, "", errors.New("-input 缺少参数")
+				return "", "", "", "", errors.New("-input 缺少参数")
 			}
 			inputPath = args[i]
 		case "-start":
 			i++
 			if i >= len(args) {
-				return "", "", "", "", false, "", errors.New("-start 缺少参数")
+				return "", "", "", "", errors.New("-start 缺少参数")
 			}
 			startMonth = args[i]
 		case "-end":
 			i++
 			if i >= len(args) {
-				return "", "", "", "", false, "", errors.New("-end 缺少参数")
+				return "", "", "", "", errors.New("-end 缺少参数")
 			}
 			endMonth = args[i]
 		case "-output":
 			i++
 			if i >= len(args) {
-				return "", "", "", "", false, "", errors.New("-output 缺少参数")
+				return "", "", "", "", errors.New("-output 缺少参数")
 			}
 			outputPath = args[i]
-		case "-debug":
-			debugMode = true
-		case "-debug-output":
-			i++
-			if i >= len(args) {
-				return "", "", "", "", false, "", errors.New("-debug-output 缺少参数")
-			}
-			debugOutputPath = args[i]
 		default:
-			return "", "", "", "", false, "", fmt.Errorf("未知参数: %s", args[i])
+			return "", "", "", "", fmt.Errorf("未知参数: %s", args[i])
 		}
 	}
 
 	if inputPath == "" || startMonth == "" || endMonth == "" {
-		return "", "", "", "", false, "", errors.New("必须提供 -input -start -end 参数")
+		return "", "", "", "", errors.New("必须提供 -input -start -end 参数")
 	}
 
 	if outputPath == "" {
 		outputPath = defaultOutputPath(inputPath, startMonth, endMonth)
 	}
-	if debugMode && debugOutputPath == "" {
-		debugOutputPath = defaultDebugOutputPath(outputPath)
-	}
 
-	return inputPath, startMonth, endMonth, outputPath, debugMode, debugOutputPath, nil
+	return inputPath, startMonth, endMonth, outputPath, nil
 }
 
 func validateMonthRange(startMonth, endMonth string) (time.Time, time.Time, error) {
@@ -182,16 +170,11 @@ func validateMonthRange(startMonth, endMonth string) (time.Time, time.Time, erro
 
 func defaultOutputPath(inputPath, startMonth, endMonth string) string {
 	base := strings.TrimSuffix(filepath.Base(inputPath), filepath.Ext(inputPath))
-	filename := fmt.Sprintf("%s_%s_to_%s.csv", base, startMonth, endMonth)
+	filename := fmt.Sprintf("%s_%s_to_%s.xlsx", base, startMonth, endMonth)
 	return filepath.Join(filepath.Dir(inputPath), filename)
 }
 
-func defaultDebugOutputPath(outputPath string) string {
-	base := strings.TrimSuffix(outputPath, filepath.Ext(outputPath))
-	return base + "_debug.csv"
-}
-
-func readDemandRecords(xlsxPath string, start, end time.Time, debugMode bool) ([]demandRecord, error) {
+func readDemandRecords(xlsxPath string, start, end time.Time) ([]demandRecord, error) {
 	file, err := excelize.OpenFile(xlsxPath)
 	if err != nil {
 		return nil, fmt.Errorf("打开 xlsx 失败: %w", err)
@@ -271,7 +254,7 @@ func parseOneSheet(file *excelize.File, sheet, statMonth string) ([]demandRecord
 		return nil, nil
 	}
 
-	headerRowIdx, titleCol, startCol, endCol, err := detectHeaderRow(rows)
+	headerRowIdx, titleCol, specCol, linkCol, startCol, endCol, err := detectHeaderRow(rows)
 	if err != nil {
 		return nil, err
 	}
@@ -283,11 +266,20 @@ func parseOneSheet(file *excelize.File, sheet, statMonth string) ([]demandRecord
 
 	demandMap := make(map[string]*demandAgg)
 	for rowIdx := headerRowIdx + 2; rowIdx <= len(rows); rowIdx++ {
-		titleCell, startCell, endCell := cellName(titleCol, rowIdx), cellName(startCol, rowIdx), cellName(endCol, rowIdx)
+		titleCell := cellName(titleCol, rowIdx)
+		specCell := cellName(specCol, rowIdx)
+		startCell := cellName(startCol, rowIdx)
+		endCell := cellName(endCol, rowIdx)
 
 		title := strings.TrimSpace(readCellValueByMerge(file, sheet, titleCell, mergeRefMap))
 		if title == "" {
 			continue
+		}
+		spec := strings.TrimSpace(readCellValueByMerge(file, sheet, specCell, mergeRefMap))
+		link := ""
+		if linkCol > 0 {
+			linkCell := cellName(linkCol, rowIdx)
+			link = strings.TrimSpace(readCellLinkByMerge(file, sheet, linkCell, mergeRefMap))
 		}
 
 		startVal := strings.TrimSpace(getCellValue(file, sheet, startCell))
@@ -313,10 +305,18 @@ func parseOneSheet(file *excelize.File, sheet, statMonth string) ([]demandRecord
 		if !ok {
 			demandMap[key] = &demandAgg{
 				Title:    title,
+				Spec:     spec,
+				Link:     link,
 				MinStart: startTime,
 				MaxEnd:   endTime,
 			}
 			continue
+		}
+		if exist.Spec == "" && spec != "" {
+			exist.Spec = spec
+		}
+		if exist.Link == "" && link != "" {
+			exist.Link = link
 		}
 		if startTime.Before(exist.MinStart) {
 			exist.MinStart = startTime
@@ -333,6 +333,8 @@ func parseOneSheet(file *excelize.File, sheet, statMonth string) ([]demandRecord
 		}
 		out = append(out, demandRecord{
 			Title:       v.Title,
+			Spec:        v.Spec,
+			Link:        v.Link,
 			Start:       v.MinStart,
 			End:         v.MaxEnd,
 			SourceSheet: sheet,
@@ -342,37 +344,41 @@ func parseOneSheet(file *excelize.File, sheet, statMonth string) ([]demandRecord
 	return out, nil
 }
 
-func detectHeaderRow(rows [][]string) (headerRowIdx, titleCol, startCol, endCol int, err error) {
+func detectHeaderRow(rows [][]string) (headerRowIdx, titleCol, specCol, linkCol, startCol, endCol int, err error) {
 	maxCheck := 2
 	if len(rows) < maxCheck {
 		maxCheck = len(rows)
 	}
 	for i := 0; i < maxCheck; i++ {
-		titleCol, startCol, endCol, err = headerIndexes(rows[i])
+		titleCol, specCol, linkCol, startCol, endCol, err = headerIndexes(rows[i])
 		if err == nil {
-			return i, titleCol, startCol, endCol, nil
+			return i, titleCol, specCol, linkCol, startCol, endCol, nil
 		}
 	}
-	return -1, -1, -1, -1, errors.New("前两行未识别到表头(需求标题/研发开始时间/测试完成时间)")
+	return -1, -1, -1, -1, -1, -1, errors.New("前两行未识别到表头(需求标题/需求规格/研发开始时间/测试完成时间)")
 }
 
-func headerIndexes(header []string) (titleCol, startCol, endCol int, err error) {
-	titleCol, startCol, endCol = -1, -1, -1
+func headerIndexes(header []string) (titleCol, specCol, linkCol, startCol, endCol int, err error) {
+	titleCol, specCol, linkCol, startCol, endCol = -1, -1, -1, -1, -1
 	for i, h := range header {
 		normalized := normalizeHeader(h)
 		switch {
 		case isTitleHeader(normalized):
 			titleCol = i + 1
+		case isSpecHeader(normalized):
+			specCol = i + 1
+		case isLinkHeader(normalized):
+			linkCol = i + 1
 		case isStartHeader(normalized):
 			startCol = i + 1
 		case isEndHeader(normalized):
 			endCol = i + 1
 		}
 	}
-	if titleCol == -1 || startCol == -1 || endCol == -1 {
-		return -1, -1, -1, errors.New("表头缺少 需求标题/研发开始时间/测试完成时间")
+	if titleCol == -1 || specCol == -1 || startCol == -1 || endCol == -1 {
+		return -1, -1, -1, -1, -1, errors.New("表头缺少 需求标题/需求规格/研发开始时间/测试完成时间")
 	}
-	return titleCol, startCol, endCol, nil
+	return titleCol, specCol, linkCol, startCol, endCol, nil
 }
 
 func normalizeHeader(s string) string {
@@ -389,6 +395,17 @@ func isStartHeader(h string) bool {
 	return h == "研发开始时间" || h == "开发开始时间" ||
 		(strings.Contains(h, "研发") && strings.Contains(h, "开始")) ||
 		(strings.Contains(h, "开发") && strings.Contains(h, "开始"))
+}
+
+func isSpecHeader(h string) bool {
+	return h == "需求规格" || h == "需求规模" || h == "规格" ||
+		(strings.Contains(h, "需求") && strings.Contains(h, "规格")) ||
+		(strings.Contains(h, "需求") && strings.Contains(h, "规模"))
+}
+
+func isLinkHeader(h string) bool {
+	return h == "需求链接" || h == "链接" || h == "地址" ||
+		(strings.Contains(h, "需求") && strings.Contains(h, "链接"))
 }
 
 func isEndHeader(h string) bool {
@@ -430,6 +447,17 @@ func readCellValueByMerge(file *excelize.File, sheet, cell string, mergeRefMap m
 		return getCellValue(file, sheet, ref)
 	}
 	return getCellValue(file, sheet, cell)
+}
+
+func readCellLinkByMerge(file *excelize.File, sheet, cell string, mergeRefMap map[string]string) string {
+	targetCell := cell
+	if ref, ok := mergeRefMap[cell]; ok {
+		targetCell = ref
+	}
+	if hasLink, url, err := file.GetCellHyperLink(sheet, targetCell); err == nil && hasLink && strings.TrimSpace(url) != "" {
+		return strings.TrimSpace(url)
+	}
+	return getCellValue(file, sheet, targetCell)
 }
 
 func cellName(col, row int) string {
@@ -496,6 +524,7 @@ func parseExcelSerial(s string) (float64, error) {
 
 func calcStatsByMonth(records []demandRecord, start, end time.Time) []monthStat {
 	byMonth := make(map[string][]float64)
+	sizeCountByMonth := make(map[string]map[string]int)
 	for _, rec := range records {
 		month := statMonthOf(rec)
 		days := inclusiveWorkdayDiff(rec.Start, rec.End)
@@ -503,6 +532,21 @@ func calcStatsByMonth(records []demandRecord, start, end time.Time) []monthStat 
 			continue
 		}
 		byMonth[month] = append(byMonth[month], days)
+		if _, ok := sizeCountByMonth[month]; !ok {
+			sizeCountByMonth[month] = map[string]int{
+				"small":  0,
+				"medium": 0,
+				"large":  0,
+			}
+		}
+		switch normalizeSpec(rec.Spec) {
+		case "small":
+			sizeCountByMonth[month]["small"]++
+		case "medium":
+			sizeCountByMonth[month]["medium"]++
+		case "large":
+			sizeCountByMonth[month]["large"]++
+		}
 	}
 
 	months := monthRange(start, end)
@@ -516,6 +560,9 @@ func calcStatsByMonth(records []demandRecord, start, end time.Time) []monthStat 
 		stats = append(stats, monthStat{
 			Month:          m,
 			DeliveryCount:  len(durations),
+			SmallCount:     sizeCountByMonth[m]["small"],
+			MediumCount:    sizeCountByMonth[m]["medium"],
+			LargeCount:     sizeCountByMonth[m]["large"],
 			DeliveryP80Day: p80,
 		})
 	}
@@ -537,6 +584,8 @@ func buildDebugItems(records []demandRecord, start, end time.Time) []debugItem {
 			Month:       month,
 			SourceSheet: rec.SourceSheet,
 			Title:       rec.Title,
+			Spec:        rec.Spec,
+			Link:        rec.Link,
 			Start:       rec.Start,
 			End:         rec.End,
 			Days:        days,
@@ -615,69 +664,150 @@ func percentile(values []float64, p float64) float64 {
 	return cp[index]
 }
 
-func writeCSV(outputPath string, stats []monthStat) error {
-	file, err := os.Create(outputPath)
-	if err != nil {
-		return fmt.Errorf("创建输出文件失败: %w", err)
+func normalizeSpec(spec string) string {
+	s := normalizeHeader(spec)
+	switch s {
+	case "小", "small", "s":
+		return "small"
+	case "中", "medium", "m":
+		return "medium"
+	case "大", "large", "l":
+		return "large"
+	default:
+		return ""
 	}
-	defer file.Close()
-	if _, err := file.WriteString("\uFEFF"); err != nil {
-		return fmt.Errorf("写入 UTF-8 BOM 失败: %w", err)
-	}
-
-	writer := csv.NewWriter(file)
-	defer writer.Flush()
-
-	header := []string{"统计月份", "需求交付数量", "需求交付时长P80"}
-	if err := writer.Write(header); err != nil {
-		return err
-	}
-
-	for _, s := range stats {
-		row := []string{
-			s.Month,
-			fmt.Sprintf("%d", s.DeliveryCount),
-			fmt.Sprintf("%.2f", s.DeliveryP80Day),
-		}
-		if err := writer.Write(row); err != nil {
-			return err
-		}
-	}
-
-	return writer.Error()
 }
 
-func writeDebugCSV(outputPath string, items []debugItem) error {
-	file, err := os.Create(outputPath)
-	if err != nil {
-		return fmt.Errorf("创建调试输出文件失败: %w", err)
+func specRank(spec string) int {
+	switch normalizeSpec(spec) {
+	case "small":
+		return 1
+	case "medium":
+		return 2
+	case "large":
+		return 3
+	default:
+		return 0
 	}
-	defer file.Close()
-	if _, err := file.WriteString("\uFEFF"); err != nil {
-		return fmt.Errorf("写入 UTF-8 BOM 失败: %w", err)
+}
+
+func deduplicateByTitle(records []demandRecord) []demandRecord {
+	bestByTitle := make(map[string]demandRecord)
+	order := make([]string, 0, len(records))
+	for _, rec := range records {
+		title := strings.TrimSpace(rec.Title)
+		if title == "" {
+			continue
+		}
+		rec.Title = title
+		exist, ok := bestByTitle[title]
+		if !ok {
+			bestByTitle[title] = rec
+			order = append(order, title)
+			continue
+		}
+		if shouldReplaceDemand(exist, rec) {
+			bestByTitle[title] = rec
+		}
 	}
 
-	writer := csv.NewWriter(file)
-	defer writer.Flush()
-
-	header := []string{"统计月份", "来源Sheet", "需求标题", "需求开始时间", "需求结束时间", "交付时长"}
-	if err := writer.Write(header); err != nil {
-		return err
+	out := make([]demandRecord, 0, len(bestByTitle))
+	for _, title := range order {
+		if rec, ok := bestByTitle[title]; ok {
+			out = append(out, rec)
+		}
 	}
-	for _, item := range items {
-		row := []string{
+	return out
+}
+
+func shouldReplaceDemand(current, candidate demandRecord) bool {
+	curRank := specRank(current.Spec)
+	candRank := specRank(candidate.Spec)
+	if candRank != curRank {
+		return candRank > curRank
+	}
+
+	curDays := inclusiveWorkdayDiff(current.Start, current.End)
+	candDays := inclusiveWorkdayDiff(candidate.Start, candidate.End)
+	if curDays < 0 {
+		return candDays >= 0
+	}
+	if candDays < 0 {
+		return false
+	}
+	if candDays != curDays {
+		return candDays < curDays
+	}
+	return false
+}
+
+func writeXLSX(outputPath string, stats []monthStat, items []debugItem) error {
+	f := excelize.NewFile()
+	summarySheet := "汇总"
+	detailSheet := "明细"
+	f.SetSheetName("Sheet1", summarySheet)
+	if _, err := f.NewSheet(detailSheet); err != nil {
+		return fmt.Errorf("创建输出工作表失败: %w", err)
+	}
+
+	summaryHeader := []string{"统计月份", "交付数量", "小", "中", "大", "交付时长P80"}
+	for col, h := range summaryHeader {
+		cell, _ := excelize.CoordinatesToCellName(col+1, 1)
+		if err := f.SetCellValue(summarySheet, cell, h); err != nil {
+			return fmt.Errorf("写入汇总表头失败: %w", err)
+		}
+	}
+	for i, s := range stats {
+		row := i + 2
+		values := []interface{}{s.Month, s.DeliveryCount, s.SmallCount, s.MediumCount, s.LargeCount, s.DeliveryP80Day}
+		for col, v := range values {
+			cell, _ := excelize.CoordinatesToCellName(col+1, row)
+			if err := f.SetCellValue(summarySheet, cell, v); err != nil {
+				return fmt.Errorf("写入汇总数据失败: %w", err)
+			}
+		}
+	}
+
+	detailHeader := []string{"统计月份", "来源Sheet", "需求标题", "需求规格", "需求链接", "需求开始时间", "需求结束时间", "交付时长"}
+	for col, h := range detailHeader {
+		cell, _ := excelize.CoordinatesToCellName(col+1, 1)
+		if err := f.SetCellValue(detailSheet, cell, h); err != nil {
+			return fmt.Errorf("写入明细表头失败: %w", err)
+		}
+	}
+	for i, item := range items {
+		row := i + 2
+		values := []interface{}{
 			item.Month,
 			item.SourceSheet,
 			item.Title,
+			item.Spec,
+			item.Link,
 			item.Start.Format(timeLayoutYMD),
 			item.End.Format(timeLayoutYMD),
-			fmt.Sprintf("%.2f", item.Days),
+			item.Days,
 		}
-		if err := writer.Write(row); err != nil {
-			return err
+		for col, v := range values {
+			cell, _ := excelize.CoordinatesToCellName(col+1, row)
+			if err := f.SetCellValue(detailSheet, cell, v); err != nil {
+				return fmt.Errorf("写入明细数据失败: %w", err)
+			}
+		}
+		if strings.TrimSpace(item.Link) != "" {
+			linkCell, _ := excelize.CoordinatesToCellName(5, row)
+			if err := f.SetCellHyperLink(detailSheet, linkCell, strings.TrimSpace(item.Link), "External"); err != nil {
+				return fmt.Errorf("写入需求链接失败: %w", err)
+			}
 		}
 	}
-	return writer.Error()
+
+	if idx, err := f.GetSheetIndex(summarySheet); err == nil {
+		f.SetActiveSheet(idx)
+	}
+	if err := f.SaveAs(outputPath); err != nil {
+		return fmt.Errorf("保存输出文件失败: %w", err)
+	}
+	return nil
 }
 
 func exitWithErr(err error) {
