@@ -87,6 +87,13 @@ type targetSheet struct {
 	StatMonth string
 }
 
+type releaseSheet struct {
+	Name        string
+	VersionPart string
+	ReleaseDate time.Time
+	Month       string
+}
+
 func main() {
 	inputPath, startMonth, endMonth, outputPath, err := parseArgs(os.Args[1:])
 	if err != nil {
@@ -207,9 +214,11 @@ func readDemandRecords(xlsxPath string, start, end time.Time) ([]demandRecord, e
 
 func filterTargetSheets(sheets []string, start, end time.Time) []targetSheet {
 	var result []targetSheet
+	selected := make(map[string]targetSheet)
+	var releaseSheets []releaseSheet
 	for _, name := range sheets {
 		if name == sheetDoneImmediately {
-			result = append(result, targetSheet{Name: name})
+			selected[name] = targetSheet{Name: name}
 			continue
 		}
 		if !releaseSheetRegexp.MatchString(name) {
@@ -225,17 +234,106 @@ func filterTargetSheets(sheets []string, start, end time.Time) []targetSheet {
 		if err != nil {
 			continue
 		}
+		releaseMonth := time.Date(releaseDate.Year(), releaseDate.Month(), 1, 0, 0, 0, 0, time.Local)
+		releaseMonthKey := releaseMonth.Format(timeLayoutYM)
+		releaseSheets = append(releaseSheets, releaseSheet{
+			Name:        name,
+			VersionPart: parts[0],
+			ReleaseDate: releaseDate,
+			Month:       releaseMonthKey,
+		})
+	}
 
-		month := time.Date(releaseDate.Year(), releaseDate.Month(), 1, 0, 0, 0, 0, time.Local)
-		if !month.Before(start) && !month.After(end) {
-			result = append(result, targetSheet{
-				Name:      name,
-				StatMonth: month.Format(timeLayoutYM),
-			})
+	monthToSheets := make(map[string][]releaseSheet)
+	for _, rs := range releaseSheets {
+		monthToSheets[rs.Month] = append(monthToSheets[rs.Month], rs)
+	}
+
+	monthsInRange := monthRange(start, end)
+	for _, month := range monthsInRange {
+		// 当月的版本 tab 全量纳入，后续按实际完成时间归月。
+		for _, rs := range monthToSheets[month] {
+			selected[rs.Name] = targetSheet{Name: rs.Name}
+		}
+
+		nextMonth, nextErr := addMonth(month, 1)
+		if nextErr == nil {
+			if rs, ok := pickFirstRelease(monthToSheets[nextMonth]); ok {
+				selected[rs.Name] = targetSheet{Name: rs.Name}
+			}
 		}
 	}
 
+	for _, name := range sheets {
+		if ts, ok := selected[name]; ok {
+			result = append(result, ts)
+		}
+	}
 	return result
+}
+
+func addMonth(month string, delta int) (string, error) {
+	t, err := time.ParseInLocation(timeLayoutYM, month, time.Local)
+	if err != nil {
+		return "", err
+	}
+	return t.AddDate(0, delta, 0).Format(timeLayoutYM), nil
+}
+
+func pickLastRelease(items []releaseSheet) (releaseSheet, bool) {
+	if len(items) == 0 {
+		return releaseSheet{}, false
+	}
+	sort.Slice(items, func(i, j int) bool {
+		if !items[i].ReleaseDate.Equal(items[j].ReleaseDate) {
+			return items[i].ReleaseDate.Before(items[j].ReleaseDate)
+		}
+		return compareVersion(items[i].VersionPart, items[j].VersionPart) < 0
+	})
+	return items[len(items)-1], true
+}
+
+func pickFirstRelease(items []releaseSheet) (releaseSheet, bool) {
+	if len(items) == 0 {
+		return releaseSheet{}, false
+	}
+	sort.Slice(items, func(i, j int) bool {
+		if !items[i].ReleaseDate.Equal(items[j].ReleaseDate) {
+			return items[i].ReleaseDate.Before(items[j].ReleaseDate)
+		}
+		return compareVersion(items[i].VersionPart, items[j].VersionPart) < 0
+	})
+	return items[0], true
+}
+
+func compareVersion(a, b string) int {
+	as := strings.Split(a, ".")
+	bs := strings.Split(b, ".")
+	maxLen := len(as)
+	if len(bs) > maxLen {
+		maxLen = len(bs)
+	}
+	for i := 0; i < maxLen; i++ {
+		av := 0
+		bv := 0
+		if i < len(as) {
+			if n, err := strconv.Atoi(as[i]); err == nil {
+				av = n
+			}
+		}
+		if i < len(bs) {
+			if n, err := strconv.Atoi(bs[i]); err == nil {
+				bv = n
+			}
+		}
+		if av < bv {
+			return -1
+		}
+		if av > bv {
+			return 1
+		}
+	}
+	return 0
 }
 
 func parseReleaseDate(mmdd string, fallbackYear int) (time.Time, error) {
