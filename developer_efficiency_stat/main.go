@@ -43,6 +43,7 @@ type demandRecord struct {
 	Goal        string
 	Requester   string
 	Spec        string
+	SpecAIBasis string
 	Link        string
 	Start       time.Time
 	End         time.Time
@@ -60,11 +61,12 @@ type monthStat struct {
 }
 
 type demandAgg struct {
-	Title     string
-	Goal      string
-	Requester string
-	Spec      string
-	Link      string
+	Title       string
+	Goal        string
+	Requester   string
+	Spec        string
+	SpecAIBasis string
+	Link        string
 	MinStart  time.Time
 	MaxEnd    time.Time
 }
@@ -76,6 +78,7 @@ type debugItem struct {
 	Goal        string
 	Requester   string
 	Spec        string
+	SpecAIBasis string
 	Link        string
 	Start       time.Time
 	End         time.Time
@@ -358,7 +361,7 @@ func parseOneSheet(file *excelize.File, sheet, statMonth string) ([]demandRecord
 		return nil, nil
 	}
 
-	headerRowIdx, titleCol, goalCol, requesterCol, specCol, linkCol, startCol, endCol, err := detectHeaderRow(rows)
+	headerRowIdx, titleCol, goalCol, requesterCol, specCol, specAIBasisCol, linkCol, startCol, endCol, err := detectHeaderRow(rows)
 	if err != nil {
 		return nil, err
 	}
@@ -374,6 +377,7 @@ func parseOneSheet(file *excelize.File, sheet, statMonth string) ([]demandRecord
 		goalCell := cellName(goalCol, rowIdx)
 		requesterCell := cellName(requesterCol, rowIdx)
 		specCell := cellName(specCol, rowIdx)
+		specAIBasisCell := cellName(specAIBasisCol, rowIdx)
 		startCell := cellName(startCol, rowIdx)
 		endCell := cellName(endCol, rowIdx)
 
@@ -390,6 +394,10 @@ func parseOneSheet(file *excelize.File, sheet, statMonth string) ([]demandRecord
 			requester = strings.TrimSpace(readCellValueByMerge(file, sheet, requesterCell, mergeRefMap))
 		}
 		spec := strings.TrimSpace(readCellValueByMerge(file, sheet, specCell, mergeRefMap))
+		specAIBasis := ""
+		if specAIBasisCol > 0 {
+			specAIBasis = strings.TrimSpace(readCellValueByMerge(file, sheet, specAIBasisCell, mergeRefMap))
+		}
 		link := ""
 		if linkCol > 0 {
 			linkCell := cellName(linkCol, rowIdx)
@@ -418,13 +426,14 @@ func parseOneSheet(file *excelize.File, sheet, statMonth string) ([]demandRecord
 		exist, ok := demandMap[key]
 		if !ok {
 			demandMap[key] = &demandAgg{
-				Title:     title,
-				Goal:      goal,
-				Requester: requester,
-				Spec:      spec,
-				Link:      link,
-				MinStart:  startTime,
-				MaxEnd:    endTime,
+				Title:       title,
+				Goal:        goal,
+				Requester:   requester,
+				Spec:        spec,
+				SpecAIBasis: specAIBasis,
+				Link:        link,
+				MinStart:    startTime,
+				MaxEnd:      endTime,
 			}
 			continue
 		}
@@ -436,6 +445,9 @@ func parseOneSheet(file *excelize.File, sheet, statMonth string) ([]demandRecord
 		}
 		if exist.Spec == "" && spec != "" {
 			exist.Spec = spec
+		}
+		if exist.SpecAIBasis == "" && specAIBasis != "" {
+			exist.SpecAIBasis = specAIBasis
 		}
 		if exist.Link == "" && link != "" {
 			exist.Link = link
@@ -458,6 +470,7 @@ func parseOneSheet(file *excelize.File, sheet, statMonth string) ([]demandRecord
 			Goal:        v.Goal,
 			Requester:   v.Requester,
 			Spec:        v.Spec,
+			SpecAIBasis: v.SpecAIBasis,
 			Link:        v.Link,
 			Start:       v.MinStart,
 			End:         v.MaxEnd,
@@ -468,22 +481,22 @@ func parseOneSheet(file *excelize.File, sheet, statMonth string) ([]demandRecord
 	return out, nil
 }
 
-func detectHeaderRow(rows [][]string) (headerRowIdx, titleCol, goalCol, requesterCol, specCol, linkCol, startCol, endCol int, err error) {
+func detectHeaderRow(rows [][]string) (headerRowIdx, titleCol, goalCol, requesterCol, specCol, specAIBasisCol, linkCol, startCol, endCol int, err error) {
 	maxCheck := 2
 	if len(rows) < maxCheck {
 		maxCheck = len(rows)
 	}
 	for i := 0; i < maxCheck; i++ {
-		titleCol, goalCol, requesterCol, specCol, linkCol, startCol, endCol, err = headerIndexes(rows[i])
+		titleCol, goalCol, requesterCol, specCol, specAIBasisCol, linkCol, startCol, endCol, err = headerIndexes(rows[i])
 		if err == nil {
-			return i, titleCol, goalCol, requesterCol, specCol, linkCol, startCol, endCol, nil
+			return i, titleCol, goalCol, requesterCol, specCol, specAIBasisCol, linkCol, startCol, endCol, nil
 		}
 	}
-	return -1, -1, -1, -1, -1, -1, -1, -1, errors.New("前两行未识别到表头(需求标题/需求规格/研发开始时间/测试完成时间)")
+	return -1, -1, -1, -1, -1, -1, -1, -1, -1, errors.New("前两行未识别到表头(需求标题/需求规格/研发开始时间/测试完成时间)")
 }
 
-func headerIndexes(header []string) (titleCol, goalCol, requesterCol, specCol, linkCol, startCol, endCol int, err error) {
-	titleCol, goalCol, requesterCol, specCol, linkCol, startCol, endCol = -1, -1, -1, -1, -1, -1, -1
+func headerIndexes(header []string) (titleCol, goalCol, requesterCol, specCol, specAIBasisCol, linkCol, startCol, endCol int, err error) {
+	titleCol, goalCol, requesterCol, specCol, specAIBasisCol, linkCol, startCol, endCol = -1, -1, -1, -1, -1, -1, -1, -1
 	for i, h := range header {
 		normalized := normalizeHeader(h)
 		switch {
@@ -493,6 +506,8 @@ func headerIndexes(header []string) (titleCol, goalCol, requesterCol, specCol, l
 			goalCol = i + 1
 		case isRequesterHeader(normalized):
 			requesterCol = i + 1
+		case isSpecAIBasisHeader(normalized):
+			specAIBasisCol = i + 1
 		case isSpecHeader(normalized):
 			specCol = i + 1
 		case isLinkHeader(normalized):
@@ -504,9 +519,9 @@ func headerIndexes(header []string) (titleCol, goalCol, requesterCol, specCol, l
 		}
 	}
 	if titleCol == -1 || specCol == -1 || startCol == -1 || endCol == -1 {
-		return -1, -1, -1, -1, -1, -1, -1, errors.New("表头缺少 需求标题/需求规格/研发开始时间/测试完成时间")
+		return -1, -1, -1, -1, -1, -1, -1, -1, errors.New("表头缺少 需求标题/需求规格/研发开始时间/测试完成时间")
 	}
-	return titleCol, goalCol, requesterCol, specCol, linkCol, startCol, endCol, nil
+	return titleCol, goalCol, requesterCol, specCol, specAIBasisCol, linkCol, startCol, endCol, nil
 }
 
 func normalizeHeader(s string) string {
@@ -525,7 +540,16 @@ func isStartHeader(h string) bool {
 		(strings.Contains(h, "开发") && strings.Contains(h, "开始"))
 }
 
+func isSpecAIBasisHeader(h string) bool {
+	return h == "需求规格AI判断依据" ||
+		strings.Contains(h, "AI判断依据") ||
+		(strings.Contains(h, "规格") && strings.Contains(h, "判断依据"))
+}
+
 func isSpecHeader(h string) bool {
+	if isSpecAIBasisHeader(h) {
+		return false
+	}
 	return h == "需求规格" || h == "需求规模" || h == "规格" ||
 		(strings.Contains(h, "需求") && strings.Contains(h, "规格")) ||
 		(strings.Contains(h, "需求") && strings.Contains(h, "规模"))
@@ -727,6 +751,7 @@ func buildDebugItems(records []demandRecord, start, end time.Time) []debugItem {
 			Goal:        rec.Goal,
 			Requester:   rec.Requester,
 			Spec:        rec.Spec,
+			SpecAIBasis: rec.SpecAIBasis,
 			Link:        rec.Link,
 			Start:       rec.Start,
 			End:         rec.End,
@@ -910,7 +935,7 @@ func writeXLSX(outputPath string, stats []monthStat, items []debugItem) error {
 		}
 	}
 
-	detailHeader := []string{"统计月份", "来源Sheet", "需求标题", "需求目标", "需求人", "需求规格", "需求链接", "需求开始时间", "需求结束时间", "交付时长"}
+	detailHeader := []string{"统计月份", "来源Sheet", "需求标题", "需求目标", "需求人", "需求规格", "需求规格AI判断依据", "需求链接", "需求开始时间", "需求结束时间", "交付时长"}
 	for col, h := range detailHeader {
 		cell, _ := excelize.CoordinatesToCellName(col+1, 1)
 		if err := f.SetCellValue(detailSheet, cell, h); err != nil {
@@ -926,6 +951,7 @@ func writeXLSX(outputPath string, stats []monthStat, items []debugItem) error {
 			item.Goal,
 			item.Requester,
 			item.Spec,
+			item.SpecAIBasis,
 			item.Link,
 			item.Start.Format(timeLayoutYMD),
 			item.End.Format(timeLayoutYMD),
@@ -938,7 +964,7 @@ func writeXLSX(outputPath string, stats []monthStat, items []debugItem) error {
 			}
 		}
 		if strings.TrimSpace(item.Link) != "" {
-			linkCell, _ := excelize.CoordinatesToCellName(7, row)
+			linkCell, _ := excelize.CoordinatesToCellName(8, row)
 			if err := f.SetCellHyperLink(detailSheet, linkCell, strings.TrimSpace(item.Link), "External"); err != nil {
 				return fmt.Errorf("写入需求链接失败: %w", err)
 			}
